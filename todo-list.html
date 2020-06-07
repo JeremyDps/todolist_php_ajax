@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>To Do List</title>
+    <link rel="stylesheet" href="todo-list.css">
+</head>
+<body>
+    <header>
+        <h1>TODO-LIST</h1>
+        <nav>
+            <ul>
+                <li class="link-active"><a class="header-link header-link-1" href="#">Liste des tâches</a></li>
+                <li class=""><a class="header-link header-link-2" href="#">Nouvelle tâche</a></li>
+                <li class=""><a class="header-link header-link-3" href="#">Personnes enregistrées</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section id="container"></section>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://api.jquery.com/jquery.ajax/"></script>
+
+    <script>
+
+        $(function() {
+            $("#container").load("table.php");
+
+            // Dans le menu, l'élement cliqué prend la classe link-active au détriment des autres
+            $(".header-link-1").on('click', function() {
+                $(".header-link-2, .header-link-3").parent().removeClass('link-active');
+                $(".header-link-1").parent().addClass(' link-active');
+                $("#container").load("table.php");
+            });
+
+            $(".header-link-2").on('click', function() {
+                $(".header-link-1, .header-link-3").parent().removeClass('link-active');
+                $(".header-link-2").parent().addClass(' link-active');
+                $("#container").load("add.php");
+            });
+
+            $(".header-link-3").on('click', function() {
+                $(".header-link-2, .header-link-1").parent().removeClass('link-active');
+                $(".header-link-3").parent().addClass(' link-active');
+                $("#container").load("essai.php");
+            });
+
+        });
+
+        // charge la page de modifs de la tâche sélectionnée
+        function loadUpdate(idTask) {
+            $("#container").load("update.php?task=" + idTask);
+        }
+
+        // Enregistrer une nouvelle personne
+        function savePerson() {
+            let firstname = prompt("Entrez le prénom");
+            let lastname = prompt("Entrez le nom");
+
+            // si les champs != ""
+            if(lastname && firstname) {
+                $.ajax({
+                type: "GET",
+                url: "server.php?callback=callSaveUser&action=addUser",
+                data: "firstname=" + firstname + "&lastname=" + lastname,
+
+                // rechargement de la page avec message de succès
+                success: function () {
+                    $("#container").load('essai.php');
+                        $('.message-person').show();
+                        setTimeout(
+                            function() {
+                                $('.message-person').html("La personne a bien été ajoutée");
+                                $('.message-person').css('background', 'lawngreen');
+                                $('.message-person').css('padding', '10px 10px');
+                                $('.message-person').css('margin-top', '15px');
+                                $('.message-person').css('margin-bottom', '15px');
+                                $('.message-person').css('border', '1px solid black');
+                                $('.message-person').css('border-radius', '10px');
+                            }, 300
+                        );
+                    }
+
+                });
+            }
+        }
+
+        // supprimer une tâche
+        function deleteTask(idTask, name) {
+            if(confirm("Etes-vous sur de vouloir supprimer la tâche \"" + name + "\"")) {
+                $.ajax({
+                    type: "GET",
+                    url: "server.php?callback=callDeleteTask&action=deleteTask",
+                    data: "task=" + idTask,
+                    success: function() {
+                        $("#container").load('table.php');
+                        $('#message-task').show();
+                        setTimeout(
+                            function() {
+                                $('#message-task').html("La tâche a bien été supprimée");
+                                $('#message-task').css('background', 'lawngreen');
+                                $('#message-task').css('padding', '10px 10px');
+                                $('#message-task').css('margin-top', '15px');
+                                $('#message-task').css('margin-bottom', '15px');
+                                $('#message-task').css('border', '1px solid black');
+                                $('#message-task').css('border-radius', '10px');
+                            }, 300
+                        );   
+                    }
+                });
+            };
+        }
+            
+        // supprimer une personne
+        function deleteUser(idUser, firstname, lastname) {
+            if(confirm("Etes-vous sur de vouloir supprimer " + firstname + " " + lastname)) {
+                $.ajax({
+                    type: "GET",
+                    url: "server.php?callback=callDeleteUser&action=deleteUser",
+                    data: "user=" + idUser,
+                    success: function() {
+                        $("#container").load('essai.php');
+                        $('.message-person').show();
+                        setTimeout(
+                            function() {
+                                $('.message-person').html("La personne a bien été supprimée");
+                                $('.message-person').css('background', 'lawngreen');
+                                $('.message-person').css('padding', '10px 10px');
+                                $('.message-person').css('margin-top', '15px');
+                                $('.message-person').css('margin-bottom', '15px');
+                                $('.message-person').css('border', '1px solid black');
+                                $('.message-person').css('border-radius', '10px');
+                            }, 300
+                        );   
+                    }
+                });
+            };
+        }
+
+        // inserer des nouvelles données
+        function saveData() {
+            let taskName = $("#taskName").val();
+            let deadline = $("#deadline").val();
+
+            let tabUsers = [];
+
+            let isCreateTask = false;
+            let tasks_user = false;
+
+            // le tableau contiendra l'id des personnes cochées
+            $("input[type='checkbox']:checked").each(function() {
+                tabUsers.push(parseInt($(this).attr('id')));
+            });
+
+            console.log(tabUsers);
+            
+            // si les champs != ""
+            if(taskName && deadline) {
+
+                // si aucune personne a été cochée
+                if(tabUsers.length === 0) {
+                    $.ajax({
+                        type: "POST",
+                        url: "server.php?callback=callAddTask&action=saveTask",
+                        data: "name=" + taskName + "&deadline=" + deadline, 
+                        success: function() {
+                            isCreateTask = true; 
+                            $("#container").load("add.php");
+                            $("#add-task-message").show();
+                            setTimeout(function() {
+                                $('#add-task-message').html("La tâche a bien été crée");
+                                $('#add-task-message').css('background', 'lawngreen');
+                                $('#add-task-message').css('padding', '10px 10px');
+                                $('#add-task-message').css('margin-top', '15px');
+                                $('#add-task-message').css('margin-bottom', '15px');
+                                $('#add-task-message').css('border', '1px solid black');
+                                $('#add-task-message').css('border-radius', '10px');
+                            }, 300); 
+                        }
+                    });
+                } else {
+                    $.ajax({
+                        type: "POST",
+                        url: "server.php?callback=callAddTask&action=saveTask",
+                        data: "name=" + taskName + "&deadline=" + deadline, 
+                        success: function() {
+                            isCreateTask = true; 
+                            $("#container").load("add.php");
+                            $("#add-task-message").show();
+                            setTimeout(function() {
+                                $('#add-task-message').html("La tâche a bien été crée");
+                                $('#add-task-message').css('background', 'lawngreen');
+                                $('#add-task-message').css('padding', '10px 10px');
+                                $('#add-task-message').css('margin-top', '15px');
+                                $('#add-task-message').css('margin-bottom', '15px');
+                                $('#add-task-message').css('border', '1px solid black');
+                                $('#add-task-message').css('border-radius', '10px');
+                            }, 300); 
+                        }
+                    });
+
+                    // on ajoute une personne à la fois en base
+                    for(let i = 0; i < tabUsers.length; i++) {
+                        console.log(tabUsers[i]);
+                        $.ajax({
+                            type: "POST",
+                            url: "server.php?callback=callSaveTask&action=user_task",
+                            data: "user=" + tabUsers[i], 
+                            success: function() {
+                                tasks_user = true;  
+                            }
+                        });
+                    }
+                }
+                
+            } else {
+
+                // message d'erreur
+                $('#add-task-message').html("Veuillez remplir les 2 premiers champs");
+                $('#add-task-message').css('background', 'firebrick');
+                $('#add-task-message').css('color', 'snow');
+                $('#add-task-message').css('padding', '10px 10px');
+                $('#add-task-message').css('margin-top', '15px');
+                $('#add-task-message').css('margin-bottom', '15px');
+                $('#add-task-message').css('border', '1px solid black');
+                $('#add-task-message').css('border-radius', '10px');
+            }         
+        }
+
+
+        function updateTask(idTask) {
+            let taskName = $("#update-name").val();
+            let deadline = $("#update-deadline").val();
+
+            let tabUsers = [];
+
+            let isCreateTask = false;
+            let tasks_user = false;
+
+            // le tableau contiendra l'id des personnes cochées
+            $("input[type='checkbox']:checked").each(function() {
+                tabUsers.push(parseInt($(this).attr('id')));
+            });
+
+            console.log(tabUsers);
+            
+            // si aucune personne a été cochée
+            if(taskName && deadline) {
+                if(tabUsers.length === 0) {
+                    $.ajax({
+                        type: "POST",
+                        url: "server.php?callback=callUpdateTask&action=UpdateTask",
+                        data: "name=" + taskName + "&deadline=" + deadline + "&id=" + idTask, 
+                        success: function() {
+                            isCreateTask = true; 
+                            $("#container").load("table.php");
+                            $("#message-task").show();
+                            setTimeout(function() {
+                                $('#message-task').html("La tâche a bien été modifiée");
+                                $('#message-task').css('background', 'lawngreen');
+                                $('#message-task').css('padding', '10px 10px');
+                                $('#message-task').css('margin-top', '15px');
+                                $('#message-task').css('margin-bottom', '15px');
+                                $('#message-task').css('border', '1px solid black');
+                                $('#message-task').css('border-radius', '10px');
+                            }, 300); 
+                        }
+                    });
+                } else {
+                    $.ajax({
+                        type: "POST",
+                        url: "server.php?callback=callUpdateTask&action=UpdateTask",
+                        data: "name=" + taskName + "&deadline=" + deadline + "&id=" + idTask, 
+                        success: function() {
+                            isCreateTask = true; 
+                            $("#container").load("table.php");
+                            $("#message-task").show();
+                            setTimeout(function() {
+                                $('#message-task').html("La tâche a bien été modifiée");
+                                $('#message-task').css('background', 'lawngreen');
+                                $('#message-task').css('padding', '10px 10px');
+                                $('#message-task').css('margin-top', '15px');
+                                $('#message-task').css('margin-bottom', '15px');
+                                $('#message-task').css('border', '1px solid black');
+                                $('#message-task').css('border-radius', '10px');
+                            }, 300); 
+                        }
+                    });
+
+                    // on ajoute une personne à la fois en base
+                    for(let i = 0; i < tabUsers.length; i++) {
+                        console.log(tabUsers[i]);
+                        $.ajax({
+                            type: "POST",
+                            url: "server.php?callback=callUpdateTaskUser&action=user_task_update",
+                            data: "user=" + tabUsers[i] + "&task=" + idTask, 
+                            success: function() {
+                                tasks_user = true;  
+                            }
+                        });
+                    }
+                }
+                
+            } else {
+
+                // message d'erreur
+                $('#message-update').html("Veuillez remplir les 2 premiers champs");
+                $('#message-update').css('background', 'firebrick');
+                $('#message-update').css('color', 'snow');
+                $('#message-update').css('padding', '10px 10px');
+                $('#message-update').css('margin-top', '15px');
+                $('#message-update').css('margin-bottom', '15px');
+                $('#message-update').css('border', '1px solid black');
+                $('#message-update').css('border-radius', '10px');
+            }         
+        }
+
+    </script>
+</body>
+</html>
